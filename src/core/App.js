@@ -34,6 +34,7 @@ export class App {
     this._renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this._renderer.outputColorSpace = THREE.SRGBColorSpace;
     document.getElementById('canvas-container').appendChild(this._renderer.domElement);
+    window.loadingProgress?.step('scene');
 
     // Scene
     this._scene = new THREE.Scene();
@@ -71,6 +72,7 @@ export class App {
     groundMesh.rotation.x = -Math.PI / 2;
     groundMesh.receiveShadow = true;
     this._scene.add(groundMesh);
+    window.loadingProgress?.step('physics');
 
     // Camera
     this._camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 500);
@@ -80,11 +82,13 @@ export class App {
     this._rigidWorld = new RigidWorld();
     this._aeroSystem = new AerodynamicsSystem();
     this._fluidSystem = new FluidSystem();
+    window.loadingProgress?.step('biology');
     this._character = new Character(this._rigidWorld);
     this._fpView = new FirstPersonView(this._renderer);
     this._fpView.setScene(this._scene);
     this._audio = new SpatialAudio();
     this._simController = new SimController(this._character);
+    window.loadingProgress?.step('ui');
 
     // UI panels
     const leftPanel = document.getElementById('left-panel');
@@ -158,6 +162,7 @@ export class App {
   }
 
   boot() {
+    window.loadingProgress?.step('boot');
     // Try to restore from localStorage
     const saved = localStorage.getItem('synea_character');
     if (saved) {

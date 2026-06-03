@@ -18,58 +18,277 @@
     }
   }
   </script>
+
+  <!-- ── Error logger + loading progress: run before any module imports ── -->
+  <script>
+  // ═══════════════════════════════════════════════════
+  //  ERROR LOGGER  – on-screen console for errors/warns
+  // ═══════════════════════════════════════════════════
+  (function () {
+    const MAX_ENTRIES = 80;
+    let entries = [];
+    let panelVisible = true;
+    let el = null; // built after DOM ready
+
+    function fmt(v) {
+      if (v instanceof Error) return v.message + (v.stack ? '\n' + v.stack.split('\n').slice(1, 4).join('\n') : '');
+      if (typeof v === 'object') { try { return JSON.stringify(v, null, 2).slice(0, 200); } catch { return String(v); } }
+      return String(v);
+    }
+
+    function parseSource(stack) {
+      if (!stack) return '';
+      const match = stack.match(/\/(src\/[^)]+|examples\/[^)]+|index\.html[^)]*)/);
+      return match ? match[0] : '';
+    }
+
+    function push(type, args, source) {
+      const ts = new Date().toTimeString().slice(0, 8);
+      const msg = Array.from(args).map(fmt).join(' ');
+      const src = source || '';
+      entries.unshift({ type, ts, msg, src });
+      if (entries.length > MAX_ENTRIES) entries.pop();
+      render();
+      updateBadge();
+    }
+
+    function render() {
+      if (!el) return;
+      const list = el.querySelector('#erl-list');
+      if (!list) return;
+      list.innerHTML = entries.map(e => `
+        <div class="erl-entry erl-${e.type}">
+          <span class="erl-badge">${e.type.toUpperCase()}</span>
+          <span class="erl-ts">${e.ts}</span>
+          ${e.src ? `<span class="erl-src">${e.src}</span>` : ''}
+          <pre class="erl-msg">${escHtml(e.msg)}</pre>
+        </div>
+      `).join('');
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function updateBadge() {
+      const badge = document.getElementById('erl-badge');
+      if (!badge) return;
+      const errCount = entries.filter(e => e.type === 'err').length;
+      badge.textContent = entries.length;
+      badge.style.background = errCount > 0 ? '#e94560' : '#ff9800';
+      badge.style.display = entries.length > 0 ? 'inline-flex' : 'none';
+    }
+
+    function build() {
+      el = document.createElement('div');
+      el.id = 'error-logger';
+      el.innerHTML = `
+        <div id="erl-toggle" title="Toggle error log">
+          <span id="erl-icon">⚠</span>
+          <span id="erl-badge" style="display:none">0</span>
+        </div>
+        <div id="erl-panel">
+          <div id="erl-header">
+            <span id="erl-title">Console</span>
+            <div id="erl-actions">
+              <button id="erl-clear">Clear</button>
+              <button id="erl-close">×</button>
+            </div>
+          </div>
+          <div id="erl-list"></div>
+        </div>
+      `;
+      document.body.appendChild(el);
+
+      document.getElementById('erl-toggle').addEventListener('click', () => {
+        panelVisible = !panelVisible;
+        el.classList.toggle('erl-open', panelVisible);
+      });
+      document.getElementById('erl-close').addEventListener('click', () => {
+        panelVisible = false;
+        el.classList.remove('erl-open');
+      });
+      document.getElementById('erl-clear').addEventListener('click', () => {
+        entries = [];
+        render();
+        updateBadge();
+      });
+
+      if (entries.length > 0) { el.classList.add('erl-open'); render(); updateBadge(); }
+    }
+
+    // Intercept console
+    const _cerr = console.error.bind(console);
+    const _cwarn = console.warn.bind(console);
+
+    console.error = function (...args) {
+      _cerr(...args);
+      const stack = args.find(a => a instanceof Error)?.stack || new Error().stack;
+      push('err', args, parseSource(stack));
+    };
+    console.warn = function (...args) {
+      _cwarn(...args);
+      const stack = new Error().stack;
+      push('warn', args, parseSource(stack));
+    };
+
+    // Global uncaught errors
+    window.addEventListener('error', (e) => {
+      push('err', [`${e.message}`, e.filename ? `\nat ${e.filename}:${e.lineno}:${e.colno}` : ''], '');
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      push('err', ['Unhandled Promise:', e.reason], e.reason?.stack ? parseSource(e.reason.stack) : '');
+    });
+
+    // Build panel after DOM ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', build);
+    } else {
+      build();
+    }
+
+    window.errorLogger = { push };
+  })();
+
+  // ═══════════════════════════════════════════════════
+  //  LOADING PROGRESS  – step-by-step boot tracker
+  // ═══════════════════════════════════════════════════
+  (function () {
+    const STEPS = [
+      { id: 'modules',   label: 'Loading CDN modules (Three.js, cannon-es)' },
+      { id: 'renderer',  label: 'Initializing WebGL renderer' },
+      { id: 'scene',     label: 'Building scene & lighting' },
+      { id: 'physics',   label: 'Starting physics world' },
+      { id: 'biology',   label: 'Creating biology systems' },
+      { id: 'ui',        label: 'Building UI panels' },
+      { id: 'boot',      label: 'Booting game loop' },
+    ];
+
+    const state = {}; // id → 'pending' | 'running' | 'done' | 'error'
+    STEPS.forEach(s => state[s.id] = 'pending');
+    state['modules'] = 'running'; // first step starts immediately
+
+    function totalDone() { return STEPS.filter(s => state[s.id] === 'done').length; }
+    function pct() { return Math.round((totalDone() / STEPS.length) * 100); }
+
+    function render() {
+      const list = document.getElementById('ls-steps');
+      const bar  = document.getElementById('ls-bar-fill');
+      const pctEl = document.getElementById('ls-pct');
+      if (!list) return;
+
+      list.innerHTML = STEPS.map(s => {
+        const st = state[s.id];
+        const icon = st === 'done' ? '✓' : st === 'running' ? '●' : st === 'error' ? '✗' : '○';
+        return `<div class="ls-step ls-step-${st}"><span class="ls-step-icon">${icon}</span>${s.label}</div>`;
+      }).join('');
+
+      const p = pct();
+      if (bar)  bar.style.width = p + '%';
+      if (pctEl) pctEl.textContent = p + '%';
+    }
+
+    // Poll for DOM ready
+    function tryRender() {
+      if (document.getElementById('ls-steps')) { render(); }
+      else { setTimeout(tryRender, 20); }
+    }
+    tryRender();
+
+    window.loadingProgress = {
+      step(id) {
+        // Mark previous running step as done
+        STEPS.forEach(s => { if (state[s.id] === 'running') state[s.id] = 'done'; });
+        if (state[id] !== undefined) state[id] = 'running';
+        render();
+      },
+      done(id) {
+        if (state[id] !== undefined) state[id] = 'done';
+        render();
+      },
+      error(id, err) {
+        if (state[id] !== undefined) state[id] = 'error';
+        render();
+        console.error(`[${id}] Boot step failed:`, err);
+      },
+      finish() {
+        STEPS.forEach(s => { if (state[s.id] !== 'error') state[s.id] = 'done'; });
+        render();
+      },
+    };
+  })();
+  </script>
 </head>
 <body>
   <!-- 3D Viewport -->
   <div id="canvas-container"></div>
 
-  <!-- UI Overlay (all HUD elements) -->
+  <!-- UI Overlay -->
   <div id="ui-overlay">
-    <!-- Builder panels (injected by JS) -->
     <div id="left-panel"></div>
     <div id="right-panel"></div>
     <div id="bottom-panel"></div>
-
-    <!-- Toast notifications -->
     <div id="toast"></div>
   </div>
 
   <!-- Loading screen -->
   <div id="loading-screen">
     <div class="logo">SYNEA</div>
-    <p style="color:#9090aa;font-size:13px">Biological Physics Builder</p>
-    <div class="loading-bar"><div class="loading-bar-fill"></div></div>
-    <p style="color:#9090aa;font-size:11px;margin-top:8px">Loading physics engine...</p>
+    <p class="ls-subtitle">Biological Physics Builder</p>
+
+    <div class="ls-progress-wrap">
+      <div class="ls-bar">
+        <div id="ls-bar-fill" class="ls-bar-fill"></div>
+      </div>
+      <span id="ls-pct" class="ls-pct">0%</span>
+    </div>
+
+    <div id="ls-steps" class="ls-steps-list">
+      <!-- Populated by loadingProgress -->
+    </div>
+
+    <p class="ls-hint">Requires internet connection (CDN libraries)</p>
   </div>
 
-  <!-- Quick-start overlay (shown on first visit) -->
-  <div id="quickstart" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px">
-    <h1 style="font-size:28px;background:linear-gradient(135deg,#533483,#e94560);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">SYNEA</h1>
-    <p style="color:#eaeaea;text-align:center;max-width:320px;line-height:1.6;font-size:15px">Build your creature from biology. Place bones, add muscles, wire organs, then simulate in first-person.</p>
-    <div style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:280px">
-      <button id="qs-new" style="background:#e94560;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:600;cursor:pointer">Start Fresh</button>
-      <button id="qs-human" style="background:#533483;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:600;cursor:pointer">Load Example: Human</button>
-      <button id="qs-mermaid" style="background:#0f3460;color:#fff;border:none;border-radius:10px;padding:14px;font-size:13px;cursor:pointer;border:1px solid #2a2a4a">Load Example: Mermaid</button>
+  <!-- Quick-start overlay -->
+  <div id="quickstart">
+    <h1 class="qs-logo">SYNEA</h1>
+    <p class="qs-desc">Build your creature from biology.<br>Place bones, add muscles, wire organs,<br>then simulate in first-person.</p>
+    <div class="qs-buttons">
+      <button id="qs-new" class="qs-btn qs-btn-primary">Start Fresh</button>
+      <button id="qs-human" class="qs-btn qs-btn-secondary">Load Example: Human</button>
+      <button id="qs-mermaid" class="qs-btn qs-btn-tertiary">Load Example: Mermaid</button>
     </div>
-    <p style="color:#666;font-size:11px;text-align:center">Mobile-first. Touch to interact. Physics-driven.</p>
+    <p class="qs-footer">Mobile-first · Touch to interact · Physics-driven</p>
   </div>
 
   <script type="module">
     import { App } from './src/core/App.js';
 
-    async function main() {
-      // Dismiss loading screen once THREE and CANNON are confirmed loaded
-      const app = new App();
-      window._app = app; // debug access
+    // CDN modules loaded — mark first step done
+    window.loadingProgress?.step('renderer');
 
-      // Hide loading screen
+    async function main() {
+      let app;
+      try {
+        app = new App();
+        window._app = app;
+      } catch (err) {
+        window.loadingProgress?.error('renderer', err);
+        throw err;
+      }
+
+      window.loadingProgress?.finish();
+
+      // Fade out loading screen
       const ls = document.getElementById('loading-screen');
+      ls.style.transition = 'opacity 0.5s';
       ls.style.opacity = '0';
       setTimeout(() => ls.remove(), 600);
 
       // Check if first visit
       const hasVisited = localStorage.getItem('synea_visited');
-      const hasSave = localStorage.getItem('synea_character');
+      const hasSave    = localStorage.getItem('synea_character');
 
       if (!hasVisited && !hasSave) {
         document.getElementById('quickstart').style.display = 'flex';
@@ -79,13 +298,11 @@
           document.getElementById('quickstart').style.display = 'none';
           app.boot();
         });
-
         document.getElementById('qs-human').addEventListener('click', async () => {
           document.getElementById('quickstart').style.display = 'none';
           app.boot();
           await app.loadExample('./examples/human.json');
         });
-
         document.getElementById('qs-mermaid').addEventListener('click', async () => {
           document.getElementById('quickstart').style.display = 'none';
           app.boot();
@@ -99,15 +316,25 @@
 
     main().catch(err => {
       console.error('Boot failed:', err);
-      document.getElementById('loading-screen').innerHTML = `
-        <div style="color:#e94560;text-align:center;padding:24px">
-          <h2>Failed to load</h2>
-          <p style="margin-top:8px;color:#aaa;font-size:13px">${err.message}</p>
-          <p style="margin-top:4px;color:#666;font-size:11px">Check your internet connection (CDN libraries required)</p>
-          <button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:#533483;color:#fff;border:none;border-radius:8px;cursor:pointer">Retry</button>
-        </div>
-      `;
+      const ls = document.getElementById('loading-screen');
+      if (ls) {
+        ls.innerHTML = `
+          <div class="ls-fatal">
+            <div class="ls-fatal-icon">✗</div>
+            <h2 class="ls-fatal-title">Failed to Start</h2>
+            <div class="ls-fatal-msg">${escHtml(err?.message ?? String(err))}</div>
+            ${err?.stack ? `<pre class="ls-fatal-stack">${escHtml(err.stack.split('\n').slice(1, 6).join('\n'))}</pre>` : ''}
+            <p class="ls-fatal-hint">Check your internet connection. CDN libraries are required.</p>
+            <button onclick="location.reload()" class="ls-fatal-retry">↺ Retry</button>
+            <button onclick="localStorage.clear();location.reload()" class="ls-fatal-clear">🗑 Clear saved data &amp; retry</button>
+          </div>
+        `;
+      }
     });
+
+    function escHtml(s) {
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
   </script>
 </body>
 </html>
