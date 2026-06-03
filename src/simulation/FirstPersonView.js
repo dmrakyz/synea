@@ -5,7 +5,7 @@ import * as THREE from 'three';
 // A full-screen quad shader composites all eye views onto the screen.
 
 const COMPOSITE_VERT = `
-varying vec2 vUv;
+out vec2 vUv;
 void main() {
   vUv = uv;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
@@ -19,122 +19,84 @@ uniform sampler2D uEyeTex2;
 uniform sampler2D uEyeTex3;
 
 uniform int uEyeCount;
-uniform vec4 uRegion0; // cx, cy, w, h (normalized)
+uniform vec4 uRegion0;
 uniform vec4 uRegion1;
 uniform vec4 uRegion2;
 uniform vec4 uRegion3;
 
-uniform int uEyeType0; // 0=standard, 1=wide, 2=compound, 3=slit, 4=night
+uniform int uEyeType0;
 uniform int uEyeType1;
 uniform int uEyeType2;
 uniform int uEyeType3;
 
-uniform float uNoise;      // consciousness noise
-uniform float uVignette;   // damage vignette
+uniform float uNoise;
+uniform float uVignette;
 
-varying vec2 vUv;
+in vec2 vUv;
+out vec4 fragColor;
 
-// Compound eye mosaic pattern
 vec2 compoundOffset(vec2 uv, float scale) {
   vec2 grid = floor(uv * scale);
   vec2 center = (grid + 0.5) / scale;
   float angle = (sin(grid.x * 127.1 + grid.y * 311.7) * 0.5 + 0.5) * 0.1 - 0.05;
   float c = cos(angle), s = sin(angle);
   vec2 dir = uv - center;
-  return center + vec2(c*dir.x - s*dir.y, s*dir.x + c*dir.y) * 0.95;
+  return center + vec2(c * dir.x - s * dir.y, s * dir.x + c * dir.y) * 0.95;
 }
 
 vec4 sampleEye(sampler2D tex, vec2 uv, int eyeType) {
   if (eyeType == 1) {
-    // Wide angle: barrel distortion
     vec2 d = uv - 0.5;
     float r2 = dot(d, d);
     uv = 0.5 + d * (1.0 + 0.3 * r2 + 0.15 * r2 * r2);
   } else if (eyeType == 2) {
-    // Compound: mosaic
     uv = compoundOffset(uv, 12.0);
   } else if (eyeType == 3) {
-    // Slit: pinch center, sharpen with blur on sides
     float strength = 1.0 - smoothstep(0.0, 0.5, abs(uv.x - 0.5));
     uv.y = 0.5 + (uv.y - 0.5) * (1.0 + strength * 0.3);
-  } else if (eyeType == 4) {
-    // Night: boost brightness, add green tint
   }
-
-  // Clamp to valid range
-  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-    return vec4(0.0);
-  }
-
-  vec4 col = texture2D(tex, uv);
-
+  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return vec4(0.0);
+  vec4 col = texture(tex, uv);
   if (eyeType == 4) {
-    // Night vision: brighten + green channel boost
     col.rgb = vec3(col.r * 0.1, col.g * 1.5 + col.b * 0.5, col.b * 0.1);
     col.rgb = pow(col.rgb, vec3(0.5));
   }
-
   return col;
+}
+
+void sampleRegion(sampler2D tex, vec4 region, int eyeType, inout vec4 color, inout float weight) {
+  float x0 = region.x - region.z * 0.5;
+  float x1 = region.x + region.z * 0.5;
+  float y0 = region.y - region.w * 0.5;
+  float y1 = region.y + region.w * 0.5;
+  if (vUv.x >= x0 && vUv.x <= x1 && vUv.y >= y0 && vUv.y <= y1) {
+    vec2 eyeUv = vec2((vUv.x - x0) / region.z, (vUv.y - y0) / region.w);
+    color += sampleEye(tex, eyeUv, eyeType);
+    weight += 1.0;
+  }
 }
 
 void main() {
   vec4 color = vec4(0.0);
   float weight = 0.0;
 
-  // Sample each active eye
-  for (int i = 0; i < 4; i++) {
-    if (i >= uEyeCount) break;
+  if (uEyeCount > 0) sampleRegion(uEyeTex0, uRegion0, uEyeType0, color, weight);
+  if (uEyeCount > 1) sampleRegion(uEyeTex1, uRegion1, uEyeType1, color, weight);
+  if (uEyeCount > 2) sampleRegion(uEyeTex2, uRegion2, uEyeType2, color, weight);
+  if (uEyeCount > 3) sampleRegion(uEyeTex3, uRegion3, uEyeType3, color, weight);
 
-    vec4 region;
-    sampler2D tex;
-    int eyeType;
+  if (weight > 0.0) color /= weight;
 
-    if (i == 0) { region = uRegion0; eyeType = uEyeType0; }
-    else if (i == 1) { region = uRegion1; eyeType = uEyeType1; }
-    else if (i == 2) { region = uRegion2; eyeType = uEyeType2; }
-    else { region = uRegion3; eyeType = uEyeType3; }
-
-    // Check if this pixel is in this eye's screen region
-    float x0 = region.x - region.z * 0.5;
-    float x1 = region.x + region.z * 0.5;
-    float y0 = region.y - region.w * 0.5;
-    float y1 = region.y + region.w * 0.5;
-
-    if (vUv.x >= x0 && vUv.x <= x1 && vUv.y >= y0 && vUv.y <= y1) {
-      vec2 eyeUv = vec2(
-        (vUv.x - x0) / region.z,
-        (vUv.y - y0) / region.w
-      );
-
-      vec4 eyeColor;
-      if (i == 0) eyeColor = sampleEye(uEyeTex0, eyeUv, eyeType);
-      else if (i == 1) eyeColor = sampleEye(uEyeTex1, eyeUv, eyeType);
-      else if (i == 2) eyeColor = sampleEye(uEyeTex2, eyeUv, eyeType);
-      else eyeColor = sampleEye(uEyeTex3, eyeUv, eyeType);
-
-      color += eyeColor;
-      weight += 1.0;
-    }
-  }
-
-  if (weight > 0.0) {
-    color /= weight;
-  }
-  // else: black — blind spot
-
-  // Noise (consciousness damage)
   if (uNoise > 0.0) {
     float n = fract(sin(dot(vUv * 100.0, vec2(12.9898, 78.233))) * 43758.5453);
     color.rgb = mix(color.rgb, vec3(n), uNoise);
   }
-
-  // Vignette (damage / fatigue)
   if (uVignette > 0.0) {
     float vig = smoothstep(0.4, 0.0, length(vUv - 0.5));
     color.rgb = mix(color.rgb, vec3(0.0), uVignette * (1.0 - vig));
   }
 
-  gl_FragColor = color;
+  fragColor = color;
 }
 `;
 
@@ -149,6 +111,7 @@ export class FirstPersonView {
     this._compositeMat = new THREE.ShaderMaterial({
       vertexShader: COMPOSITE_VERT,
       fragmentShader: COMPOSITE_FRAG,
+      glslVersion: THREE.GLSL3,
       uniforms: {
         uEyeTex0: { value: null }, uEyeTex1: { value: null },
         uEyeTex2: { value: null }, uEyeTex3: { value: null },

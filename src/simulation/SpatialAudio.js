@@ -99,7 +99,7 @@ export class SpatialAudio {
 
   // Procedural heartbeat sound (oscillator-based, no audio file needed)
   startHeartbeat(bpm = 70) {
-    if (!this._ctx) return;
+    if (!this._ctx || !this._masterGain) return;
     this._stopHeartbeat();
 
     const beatInterval = 60 / bpm;

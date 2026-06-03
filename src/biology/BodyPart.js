@@ -17,8 +17,9 @@ export class BodyPart {
     this._geometry = geometry ?? new THREE.SphereGeometry(0.2, 16, 12);
     this._threeMat = new THREE.MeshStandardMaterial({
       color: this._materialDef.color,
-      roughness: 0.7,
-      metalness: 0.05,
+      roughness: this._materialDef.roughness ?? 0.7,
+      metalness: this._materialDef.metalness ?? 0.05,
+      envMapIntensity: 1.4,
     });
     this._mesh = new THREE.Mesh(this._geometry, this._threeMat);
     this._mesh.castShadow = true;
@@ -200,7 +201,22 @@ export class BodyPart {
     if (data.geometryData?.type === 'boundingBox') {
       const { min, max } = data.geometryData;
       const w = max.x - min.x, h = max.y - min.y, d = max.z - min.z;
-      geometry = new THREE.BoxGeometry(w, h, d);
+      const maxDim = Math.max(w, h, d);
+      const minDim = Math.min(w, h, d);
+      const elongation = h / Math.max(w, d);
+
+      if (elongation > 1.8) {
+        // Limb / tail segment: capsule along Y
+        const r = Math.min(w, d) / 2;
+        const cylLen = Math.max(h - 2 * r, 0);
+        geometry = new THREE.CapsuleGeometry(r, cylLen, 6, 16);
+      } else if (minDim / maxDim > 0.62) {
+        // Roughly cubic / spherical: head, organs
+        geometry = new THREE.SphereGeometry(maxDim / 2, 20, 14);
+      } else {
+        // Flat or boxy: torso, fins, plates
+        geometry = new THREE.BoxGeometry(w, h, d);
+      }
     } else {
       geometry = new THREE.SphereGeometry(0.2, 16, 12);
     }
