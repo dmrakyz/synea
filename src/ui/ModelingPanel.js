@@ -84,13 +84,17 @@ export class ModelingPanel {
   }
 
   show() {
+    this._container.style.display = '';
     this._el.style.display = '';
     this._bindEvents();
     this._buildPresets();
     this._initLatheCanvas();
   }
 
-  hide() { this._el.style.display = 'none'; }
+  hide() {
+    this._el.style.display = 'none';
+    this._container.style.display = 'none';
+  }
 
   _bindEvents() {
     if (this._eventsBound) return;

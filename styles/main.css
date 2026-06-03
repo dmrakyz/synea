@@ -90,12 +90,13 @@ html, body {
 #bottom-panel {
   position: fixed; bottom: 0; left: 0; right: 0;
   max-height: 60vh;
-  background: rgba(22, 33, 62, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid var(--border);
+  background: rgba(14, 18, 42, 0.96);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-top: 1px solid var(--border2);
   overflow-y: auto;
   z-index: 20;
+  box-shadow: 0 -6px 30px rgba(0,0,0,0.6);
 }
 
 /* ── Builder Top Bar ─────────────────────────── */
@@ -778,9 +779,87 @@ button {
 }
 
 /* ── Responsive: desktop supplement ─────────── */
-@media (min-width: 600px) {
+@media (min-width: 641px) {
   #mode-pills .mode-pill { padding: 8px 14px; font-size: 13px; }
   #left-panel, #right-panel { width: min(280px, 30vw); }
+}
+
+/* ── Mobile: panels become full-width bottom sheets ── */
+@media (max-width: 640px) {
+  /* Both panels: convert from side columns to bottom sheets */
+  #left-panel, #right-panel {
+    position: fixed;
+    left: 0 !important; right: 0 !important;
+    top: auto !important; bottom: 0;
+    width: 100% !important;
+    max-height: 54vh;
+    border-radius: 20px 20px 0 0;
+    border-left: none !important; border-right: none !important;
+    border-bottom: none;
+    border-top: 1px solid var(--border2) !important;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.7), 0 -1px 0 rgba(91,61,143,0.3);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Slide-in animation */
+    animation: sheet-in 0.28s cubic-bezier(0.25, 0.8, 0.25, 1) both;
+  }
+
+  @keyframes sheet-in {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+  }
+
+  /* Inspector (right panel) floats above modeler (left panel) */
+  #right-panel { z-index: 22; }
+
+  /* Drag handle pill at top of each sheet */
+  #left-panel::before, #right-panel::before {
+    content: '';
+    display: block;
+    width: 40px; height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    margin: 10px auto 4px;
+    position: sticky; top: 0;
+    flex-shrink: 0;
+  }
+
+  /* Panel header adapts to sheet */
+  #left-panel .panel-header,
+  #right-panel .panel-header {
+    position: sticky; top: 24px; z-index: 1;
+    background: rgba(14, 18, 42, 0.98);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  /* Denser presets grid on narrow screens */
+  .preset-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px; padding: 6px;
+  }
+
+  .preset-btn {
+    padding: 8px 4px; font-size: 11px; min-height: 44px;
+  }
+
+  /* Top bar: tighter on mobile */
+  #builder-top-bar { padding: 0 6px; gap: 3px; }
+
+  .mode-pill {
+    padding: 5px 9px; font-size: 11px; min-height: 34px; min-width: 56px;
+  }
+
+  #btn-simulate { padding: 7px 11px; font-size: 12px; }
+
+  .icon-btn { min-width: 36px; min-height: 36px; padding: 4px 8px; font-size: 14px; }
+
+  /* Bottom panel (control mapper) already full-width, just adjust radius */
+  #bottom-panel { border-radius: 20px 20px 0 0; }
+
+  /* Sim HUD zones: adjust for full-width viewport on mobile */
+  #zone-up, #zone-down { width: 100px; height: 80px; }
+  #zone-left, #zone-right { width: 80px; height: 100px; }
 }
 
 @media (hover: hover) {

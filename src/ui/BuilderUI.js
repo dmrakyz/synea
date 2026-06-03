@@ -57,6 +57,10 @@ export class BuilderUI {
     this._el = this._buildTopBar();
     this._ghost = null; // ghost mesh for placement preview
 
+    // Both containers hidden until a mode actively needs them
+    document.getElementById('left-panel').style.display = 'none';
+    document.getElementById('right-panel').style.display = 'none';
+
     this._onDown = this._onPointerDown.bind(this);
     this._onMove = this._onPointerMove.bind(this);
     this._onUp = this._onPointerUp.bind(this);

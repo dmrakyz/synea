@@ -31,12 +31,14 @@ export class InspectorPanel {
 
   show(element) {
     this._current = element;
+    this._container.style.display = '';
     this._el.style.display = '';
     this._render();
   }
 
   hide() {
     this._el.style.display = 'none';
+    this._container.style.display = 'none';
     this._current = null;
   }
 
