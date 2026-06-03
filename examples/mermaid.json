@@ -1,0 +1,163 @@
+{
+  "parts": [
+    {
+      "id": "m_torso", "name": "Torso", "type": "Bone", "materialId": "SCALE", "mass": 12,
+      "position": {"x": 0, "y": 1.0, "z": 0},
+      "quaternion": {"x": 0, "y": 0, "z": 0, "w": 1},
+      "geometryData": {"type": "boundingBox", "min": {"x": -0.15, "y": -0.22, "z": -0.09}, "max": {"x": 0.15, "y": 0.22, "z": 0.09}}
+    },
+    {
+      "id": "m_head", "name": "Head", "type": "Bone", "materialId": "SKIN", "mass": 4,
+      "position": {"x": 0, "y": 1.38, "z": 0},
+      "quaternion": {"x": 0, "y": 0, "z": 0, "w": 1},
+      "geometryData": {"type": "boundingBox", "min": {"x": -0.09, "y": -0.09, "z": -0.09}, "max": {"x": 0.09, "y": 0.11, "z": 0.09}}
+    },
+    {
+      "id": "m_tail1", "name": "Tail Seg 1", "type": "Bone", "materialId": "FIN", "mass": 5,
+      "position": {"x": 0, "y": 0.72, "z": 0},
+      "quaternion": {"x": 0, "y": 0, "z": 0, "w": 1},
+      "geometryData": {"type": "boundingBox", "min": {"x": -0.12, "y": -0.18, "z": -0.07}, "max": {"x": 0.12, "y": 0.18, "z": 0.07}}
+    },
+    {
+      "id": "m_tail2", "name": "Tail Seg 2", "type": "Bone", "materialId": "FIN", "mass": 3.5,
+      "position": {"x": 0, "y": 0.4, "z": 0},
+      "quaternion": {"x": 0, "y": 0, "z": 0, "w": 1},
+      "geometryData": {"type": "boundingBox", "min": {"x": -0.09, "y": -0.16, "z": -0.06}, "max": {"x": 0.09, "y": 0.16, "z": 0.06}}
+    },
+    {
+      "id": "m_tail3", "name": "Tail Seg 3", "type": "Bone", "materialId": "FIN", "mass": 2,
+      "position": {"x": 0, "y": 0.1, "z": 0},
+      "quaternion": {"x": 0, "y": 0, "z": 0, "w": 1},
+      "geometryData": {"type": "boundingBox", "min": {"x": -0.07, "y": -0.14, "z": -0.05}, "max": {"x": 0.07, "y": 0.14, "z": 0.05}}
+    },
+    {
+      "id": "m_fin_l", "name": "Left Fin", "type": "Bone", "materialId": "FIN", "mass": 0.5,
+      "position": {"x": -0.2, "y": 0.95, "z": 0},
+      "quaternion": {"x": 0, "y": 0, "z": 0, "w": 1},
+      "geometryData": {"type": "boundingBox", "min": {"x": -0.1, "y": -0.05, "z": -0.14}, "max": {"x": 0.0, "y": 0.05, "z": 0.14}}
+    },
+    {
+      "id": "m_fin_r", "name": "Right Fin", "type": "Bone", "materialId": "FIN", "mass": 0.5,
+      "position": {"x": 0.2, "y": 0.95, "z": 0},
+      "quaternion": {"x": 0, "y": 0, "z": 0, "w": 1},
+      "geometryData": {"type": "boundingBox", "min": {"x": 0.0, "y": -0.05, "z": -0.14}, "max": {"x": 0.1, "y": 0.05, "z": 0.14}}
+    },
+    {
+      "id": "m_eye_l", "name": "Left Eye", "type": "Eye", "materialId": "SKIN", "mass": 0.01,
+      "organType": "eye", "eyeType": "wide", "fov": 140, "sensitivity": 1.2,
+      "position": {"x": -0.05, "y": 1.42, "z": 0.08},
+      "quaternion": {"x": 0, "y": 0, "z": 0, "w": 1},
+      "geometryData": {"type": "boundingBox", "min": {"x": -0.02, "y": -0.02, "z": -0.01}, "max": {"x": 0.02, "y": 0.02, "z": 0.01}}
+    },
+    {
+      "id": "m_eye_r", "name": "Right Eye", "type": "Eye", "materialId": "SKIN", "mass": 0.01,
+      "organType": "eye", "eyeType": "wide", "fov": 140, "sensitivity": 1.2,
+      "position": {"x": 0.05, "y": 1.42, "z": 0.08},
+      "quaternion": {"x": 0, "y": 0, "z": 0, "w": 1},
+      "geometryData": {"type": "boundingBox", "min": {"x": -0.02, "y": -0.02, "z": -0.01}, "max": {"x": 0.02, "y": 0.02, "z": 0.01}}
+    },
+    {
+      "id": "m_heart", "name": "Heart", "type": "Heart", "materialId": "MUSCLE_CARDIAC", "mass": 0.2,
+      "organType": "heart", "bpm": 60,
+      "position": {"x": 0, "y": 1.0, "z": 0},
+      "quaternion": {"x": 0, "y": 0, "z": 0, "w": 1},
+      "geometryData": {"type": "boundingBox", "min": {"x": -0.04, "y": -0.04, "z": -0.03}, "max": {"x": 0.04, "y": 0.04, "z": 0.03}}
+    }
+  ],
+  "joints": [
+    {
+      "id": "jm_neck", "type": "cone",
+      "partAId": "m_torso", "partBId": "m_head",
+      "pivotA": {"x": 0, "y": 0.22, "z": 0}, "pivotB": {"x": 0, "y": -0.09, "z": 0},
+      "axisA": {"x": 0, "y": 1, "z": 0}, "axisB": {"x": 0, "y": 1, "z": 0},
+      "limits": {"low": -0.3, "high": 0.3, "twist": 0.2}
+    },
+    {
+      "id": "jm_t1", "type": "cone",
+      "partAId": "m_torso", "partBId": "m_tail1",
+      "pivotA": {"x": 0, "y": -0.22, "z": 0}, "pivotB": {"x": 0, "y": 0.18, "z": 0},
+      "axisA": {"x": 0, "y": 1, "z": 0}, "axisB": {"x": 0, "y": 1, "z": 0},
+      "limits": {"low": -0.5, "high": 0.5, "twist": 0.4}
+    },
+    {
+      "id": "jm_t2", "type": "cone",
+      "partAId": "m_tail1", "partBId": "m_tail2",
+      "pivotA": {"x": 0, "y": -0.18, "z": 0}, "pivotB": {"x": 0, "y": 0.16, "z": 0},
+      "axisA": {"x": 0, "y": 1, "z": 0}, "axisB": {"x": 0, "y": 1, "z": 0},
+      "limits": {"low": -0.6, "high": 0.6, "twist": 0.5}
+    },
+    {
+      "id": "jm_t3", "type": "cone",
+      "partAId": "m_tail2", "partBId": "m_tail3",
+      "pivotA": {"x": 0, "y": -0.16, "z": 0}, "pivotB": {"x": 0, "y": 0.14, "z": 0},
+      "axisA": {"x": 0, "y": 1, "z": 0}, "axisB": {"x": 0, "y": 1, "z": 0},
+      "limits": {"low": -0.7, "high": 0.7, "twist": 0.6}
+    },
+    {
+      "id": "jm_fin_l", "type": "hinge",
+      "partAId": "m_torso", "partBId": "m_fin_l",
+      "pivotA": {"x": -0.15, "y": 0, "z": 0}, "pivotB": {"x": 0.0, "y": 0, "z": 0},
+      "axisA": {"x": 0, "y": 1, "z": 0}, "axisB": {"x": 0, "y": 1, "z": 0},
+      "limits": {"low": -0.4, "high": 0.4, "twist": 0}
+    },
+    {
+      "id": "jm_fin_r", "type": "hinge",
+      "partAId": "m_torso", "partBId": "m_fin_r",
+      "pivotA": {"x": 0.15, "y": 0, "z": 0}, "pivotB": {"x": 0.0, "y": 0, "z": 0},
+      "axisA": {"x": 0, "y": 1, "z": 0}, "axisB": {"x": 0, "y": 1, "z": 0},
+      "limits": {"low": -0.4, "high": 0.4, "twist": 0}
+    }
+  ],
+  "muscles": [
+    {
+      "id": "mm_t1_l", "name": "Tail-1 Left", "type": "MUSCLE_SKELETAL",
+      "controlGroup": "tail_left",
+      "partAId": "m_torso", "partBId": "m_tail1",
+      "anchorLocalA": {"x": -0.1, "y": -0.18, "z": 0},
+      "anchorLocalB": {"x": -0.1, "y": 0.14, "z": 0},
+      "naturalLength": 0.32
+    },
+    {
+      "id": "mm_t1_r", "name": "Tail-1 Right", "type": "MUSCLE_SKELETAL",
+      "controlGroup": "tail_right",
+      "partAId": "m_torso", "partBId": "m_tail1",
+      "anchorLocalA": {"x": 0.1, "y": -0.18, "z": 0},
+      "anchorLocalB": {"x": 0.1, "y": 0.14, "z": 0},
+      "naturalLength": 0.32
+    },
+    {
+      "id": "mm_t2_l", "name": "Tail-2 Left", "type": "MUSCLE_SKELETAL",
+      "controlGroup": "tail_left",
+      "partAId": "m_tail1", "partBId": "m_tail2",
+      "anchorLocalA": {"x": -0.08, "y": -0.14, "z": 0},
+      "anchorLocalB": {"x": -0.07, "y": 0.12, "z": 0},
+      "naturalLength": 0.27
+    },
+    {
+      "id": "mm_t2_r", "name": "Tail-2 Right", "type": "MUSCLE_SKELETAL",
+      "controlGroup": "tail_right",
+      "partAId": "m_tail1", "partBId": "m_tail2",
+      "anchorLocalA": {"x": 0.08, "y": -0.14, "z": 0},
+      "anchorLocalB": {"x": 0.07, "y": 0.12, "z": 0},
+      "naturalLength": 0.27
+    },
+    {
+      "id": "mm_t3_l", "name": "Tail-3 Left", "type": "MUSCLE_SKELETAL",
+      "controlGroup": "tail_left",
+      "partAId": "m_tail2", "partBId": "m_tail3",
+      "anchorLocalA": {"x": -0.07, "y": -0.12, "z": 0},
+      "anchorLocalB": {"x": -0.05, "y": 0.10, "z": 0},
+      "naturalLength": 0.22
+    },
+    {
+      "id": "mm_t3_r", "name": "Tail-3 Right", "type": "MUSCLE_SKELETAL",
+      "controlGroup": "tail_right",
+      "partAId": "m_tail2", "partBId": "m_tail3",
+      "anchorLocalA": {"x": 0.07, "y": -0.12, "z": 0},
+      "anchorLocalB": {"x": 0.05, "y": 0.10, "z": 0},
+      "naturalLength": 0.22
+    }
+  ],
+  "nervousSystem": {"nodes": [], "axons": []},
+  "circulatorySystem": {"nodes": [], "vessels": []}
+}

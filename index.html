@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>Synea — Biology Physics Builder</title>
+  <link rel="stylesheet" href="styles/main.css">
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.min.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/",
+      "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- 3D Viewport -->
+  <div id="canvas-container"></div>
+
+  <!-- UI Overlay (all HUD elements) -->
+  <div id="ui-overlay">
+    <!-- Builder panels (injected by JS) -->
+    <div id="left-panel"></div>
+    <div id="right-panel"></div>
+    <div id="bottom-panel"></div>
+
+    <!-- Toast notifications -->
+    <div id="toast"></div>
+  </div>
+
+  <!-- Loading screen -->
+  <div id="loading-screen">
+    <div class="logo">SYNEA</div>
+    <p style="color:#9090aa;font-size:13px">Biological Physics Builder</p>
+    <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+    <p style="color:#9090aa;font-size:11px;margin-top:8px">Loading physics engine...</p>
+  </div>
+
+  <!-- Quick-start overlay (shown on first visit) -->
+  <div id="quickstart" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px">
+    <h1 style="font-size:28px;background:linear-gradient(135deg,#533483,#e94560);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">SYNEA</h1>
+    <p style="color:#eaeaea;text-align:center;max-width:320px;line-height:1.6;font-size:15px">Build your creature from biology. Place bones, add muscles, wire organs, then simulate in first-person.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:280px">
+      <button id="qs-new" style="background:#e94560;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:600;cursor:pointer">Start Fresh</button>
+      <button id="qs-human" style="background:#533483;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:600;cursor:pointer">Load Example: Human</button>
+      <button id="qs-mermaid" style="background:#0f3460;color:#fff;border:none;border-radius:10px;padding:14px;font-size:13px;cursor:pointer;border:1px solid #2a2a4a">Load Example: Mermaid</button>
+    </div>
+    <p style="color:#666;font-size:11px;text-align:center">Mobile-first. Touch to interact. Physics-driven.</p>
+  </div>
+
+  <script type="module">
+    import { App } from './src/core/App.js';
+
+    async function main() {
+      // Dismiss loading screen once THREE and CANNON are confirmed loaded
+      const app = new App();
+      window._app = app; // debug access
+
+      // Hide loading screen
+      const ls = document.getElementById('loading-screen');
+      ls.style.opacity = '0';
+      setTimeout(() => ls.remove(), 600);
+
+      // Check if first visit
+      const hasVisited = localStorage.getItem('synea_visited');
+      const hasSave = localStorage.getItem('synea_character');
+
+      if (!hasVisited && !hasSave) {
+        document.getElementById('quickstart').style.display = 'flex';
+        localStorage.setItem('synea_visited', '1');
+
+        document.getElementById('qs-new').addEventListener('click', () => {
+          document.getElementById('quickstart').style.display = 'none';
+          app.boot();
+        });
+
+        document.getElementById('qs-human').addEventListener('click', async () => {
+          document.getElementById('quickstart').style.display = 'none';
+          app.boot();
+          await app.loadExample('./examples/human.json');
+        });
+
+        document.getElementById('qs-mermaid').addEventListener('click', async () => {
+          document.getElementById('quickstart').style.display = 'none';
+          app.boot();
+          await app.loadExample('./examples/mermaid.json');
+        });
+      } else {
+        document.getElementById('quickstart').style.display = 'none';
+        app.boot();
+      }
+    }
+
+    main().catch(err => {
+      console.error('Boot failed:', err);
+      document.getElementById('loading-screen').innerHTML = `
+        <div style="color:#e94560;text-align:center;padding:24px">
+          <h2>Failed to load</h2>
+          <p style="margin-top:8px;color:#aaa;font-size:13px">${err.message}</p>
+          <p style="margin-top:4px;color:#666;font-size:11px">Check your internet connection (CDN libraries required)</p>
+          <button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:#533483;color:#fff;border:none;border-radius:8px;cursor:pointer">Retry</button>
+        </div>
+      `;
+    });
+  </script>
+</body>
+</html>
